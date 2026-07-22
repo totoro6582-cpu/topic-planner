@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>选题过三关 · 离线判断清单</title>
+<style>
+/* ===========================================
+   零依赖单文件工具：不加载任何外部字体/脚本/CDN（也不用 Google Fonts/
+   Fontshare——离线是这个工具存在的意义，所以这里刻意不遵循 frontend-slides
+   "必须联网加载字体" 的默认规则，改用精心搭配的系统字体栈：衬线体做展示字
+   （editorial/克制的高级感，呼应奶油莫兰迪基调），无衬线做正文，在用户自己
+   电脑上会用系统里真实安装的中文字体渲染，不会退化成 Arial/Inter 那种通用感）。
+   下载后断网也能正常打开使用。所有数据只存在你自己浏览器的 localStorage 里，
+   不会发送到任何服务器。
+   =========================================== */
+:root{
+  --cream:#FAF3E6; --cream-card:#FFFCF6; --ink:#4A3F35; --ink-soft:#6B5E52;
+  --gray:#9C8F80; --line:#E7DAC4;
+  --mustard:#C9A66B; --sage:#8FA377; --rose:#C9A398;
+  --mustard-tint:#F5EBD6; --sage-tint:#EAF0E4; --rose-tint:#F5E9E5;
+  --green:#7C9768; --amber:#BF9A4E; --terra:#BD7A6B; --dustblue:#7C93A0;
+  --font-display: Georgia, "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", serif;
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+          "Helvetica Neue", Arial, sans-serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; color:var(--ink); font-family:var(--font);
+  line-height:1.6; padding-bottom:80px;
+  /* 背景氛围：奶油底上叠三团极淡的莫兰迪光晕，替代平铺纯色背景 */
+  background-color:var(--cream);
+  background-image:
+    radial-gradient(ellipse 700px 500px at 8% -5%, rgba(201,166,107,.16), transparent 60%),
+    radial-gradient(ellipse 600px 500px at 100% 20%, rgba(143,163,119,.14), transparent 60%),
+    radial-gradient(ellipse 700px 600px at 20% 100%, rgba(201,163,152,.14), transparent 60%);
+  background-attachment:fixed;
+}
+.wrap{max-width:920px; margin:0 auto; padding:0 24px;}
+header.mast{
+  background:var(--mustard); color:var(--cream-card); padding:40px 34px 30px;
+  margin-bottom:0; position:relative; overflow:hidden;
+}
+header.mast::after{
+  /* 细节纹理：右上角一圈很淡的同心弧线，避免纯色块的平淡感 */
+  content:""; position:absolute; right:-60px; top:-90px; width:260px; height:260px;
+  border-radius:50%; border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 0 0 34px rgba(255,255,255,.06), 0 0 0 68px rgba(255,255,255,.04);
+  pointer-events:none;
+}
+header.mast h1{
+  margin:0 0 8px; font-family:var(--font-display); font-size:32px; font-weight:700;
+  letter-spacing:.3px; position:relative;
+  opacity:0; transform:translateY(-8px); animation:reveal .55s var(--ease) forwards;
+}
+header.mast p{
+  margin:0; font-size:13px; opacity:0; position:relative;
+  animation:revealFade .55s var(--ease) .1s forwards;
+}
+@keyframes revealFade{ to{ opacity:.85; } }
+@keyframes revealFadeFull{ to{ opacity:1; } }
+@media (prefers-reduced-motion: reduce){
+  header.mast h1{animation:none; opacity:1; transform:none;}
+  header.mast p{animation:none; opacity:.85;}
+}
+.stripe{height:6px; display:flex;}
+.stripe div{flex:1;}
+.stripe .m{background:var(--mustard);} .stripe .s{background:var(--sage);} .stripe .r{background:var(--rose);}
+
+.offline-badge{
+  display:inline-block; font-size:11px; background:rgba(255,255,255,.14); color:var(--cream-card);
+  border:1px solid rgba(255,255,255,.4); border-radius:20px; padding:3px 12px; margin-top:12px;
+  position:relative; opacity:0; animation:revealFadeFull .55s var(--ease) .2s forwards;
+}
+@media (prefers-reduced-motion: reduce){ .offline-badge{animation:none; opacity:1;} }
+
+.card{
+  background:var(--cream-card); border:1px solid var(--line); border-radius:4px;
+  padding:24px 26px; margin:20px 0;
+  box-shadow:0 1px 0 rgba(74,63,53,.03);
+  opacity:0; transform:translateY(14px);
+  animation:reveal .6s var(--ease) forwards;
+}
+.card:nth-of-type(1){animation-delay:.05s;}
+.card:nth-of-type(2){animation-delay:.12s;}
+.card:nth-of-type(3){animation-delay:.19s;}
+.card:nth-of-type(4){animation-delay:.26s;}
+.card:nth-of-type(5){animation-delay:.33s;}
+@keyframes reveal{ to{ opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion: reduce){
+  .card{animation:none; opacity:1; transform:none;}
+}
+.card h2{font-size:11.5px; text-transform:uppercase; letter-spacing:1.5px; color:var(--gray); margin:0 0 6px; font-weight:700;}
+.card h3{font-family:var(--font-display); font-weight:700; font-size:21px; margin:0 0 14px; color:var(--ink);}
+
+label{display:block; font-size:13px; color:var(--gray); margin-bottom:6px; font-weight:600;}
+input[type=text], select, textarea{
+  width:100%; font-family:var(--font); font-size:14px; color:var(--ink);
+  border:1px solid var(--line); border-radius:6px; padding:10px 12px;
+  background:#fff; margin-bottom:14px; transition:border-color .15s ease, box-shadow .15s ease;
+}
+input[type=text]:focus, select:focus, textarea:focus{
+  outline:none; border-color:var(--mustard); box-shadow:0 0 0 3px var(--mustard-tint);
+}
+textarea{resize:vertical; min-height:52px;}
+
+.gate{border-left:4px solid var(--mustard); padding-left:20px; margin:26px 0; position:relative;}
+.gate.g2{border-color:var(--sage);}
+.gate.g3{border-color:var(--rose);}
+.gate-head{display:flex; align-items:baseline; gap:14px; margin-bottom:14px;}
+.gate-num{font-family:var(--font-display); font-size:44px; font-weight:700; color:var(--mustard); line-height:1; opacity:.85;}
+.gate.g2 .gate-num{color:var(--sage);}
+.gate.g3 .gate-num{color:var(--rose);}
+.gate-titles .tag{font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:1.2px; font-weight:700;}
+.gate-titles h3{margin:2px 0 0;}
+
+.item{border-top:1px solid var(--line); padding-top:16px; margin-top:16px;}
+.item:first-child{border-top:none; padding-top:0; margin-top:0;}
+.item-title{font-weight:700; font-size:14.5px; margin-bottom:8px;}
+.item-title .n{color:var(--mustard); font-family:var(--font-display);}
+.gate.g2 .item-title .n{color:var(--sage);}
+.gate.g3 .item-title .n{color:var(--rose);}
+.item-desc{font-size:12.5px; color:var(--ink-soft); margin-bottom:10px;}
+
+.radio-row{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+.radio-row label{
+  display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:500;
+  color:var(--ink); background:#fff; border:1px solid var(--line); border-radius:20px;
+  padding:6px 14px; cursor:pointer; margin:0; user-select:none;
+  transition:background-color .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+}
+.radio-row label:hover{transform:translateY(-1px);}
+.radio-row input{margin:0; accent-color:var(--mustard);}
+.radio-row label.checked-成立, .radio-row label.checked-强{background:var(--sage-tint); border-color:var(--green); color:var(--green);}
+.radio-row label.checked-存疑, .radio-row label.checked-中{background:var(--mustard-tint); border-color:var(--amber); color:var(--amber);}
+.radio-row label.checked-不成立, .radio-row label.checked-弱{background:var(--rose-tint); border-color:var(--terra); color:var(--terra);}
+
+/* ---------- 结果区 ---------- */
+.result{
+  background:var(--cream-card); border:1px solid var(--line); border-top:3px solid var(--mustard);
+  border-radius:4px 4px 10px 10px;
+  padding:24px; margin:24px 0; position:sticky; bottom:16px;
+  box-shadow:0 10px 30px rgba(74,63,53,.14);
+  opacity:0; transform:translateY(14px); animation:reveal .6s var(--ease) .4s forwards;
+}
+@media (prefers-reduced-motion: reduce){
+  .result{animation:none; opacity:1; transform:none;}
+}
+.result h2{font-size:11.5px; text-transform:uppercase; letter-spacing:1.5px; color:var(--gray); margin:0 0 10px; font-weight:700;}
+.verdict-badge{
+  display:inline-block; font-family:var(--font-display); font-size:21px; font-weight:700;
+  padding:9px 24px; border-radius:6px; color:#fff; margin-bottom:10px;
+  transition:background-color .2s ease;
+}
+.verdict-推进{background:var(--green);}
+.verdict-补充材料后推进{background:var(--amber);}
+.verdict-暂不推进{background:var(--terra);}
+.verdict-待填写{background:var(--gray);}
+.stuck-list{font-size:13px; color:var(--ink-soft); margin:8px 0 0;}
+.stuck-list b{color:var(--terra);}
+
+.btn-row{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;}
+button{
+  font-family:var(--font); font-size:13px; font-weight:600; padding:9px 18px;
+  border-radius:6px; border:1px solid var(--line); background:#fff; color:var(--ink);
+  cursor:pointer; transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+}
+button.primary{background:var(--mustard); color:var(--cream-card); border-color:var(--mustard);}
+button:hover{transform:translateY(-1px); box-shadow:0 4px 12px rgba(74,63,53,.12);}
+button:active{transform:translateY(0); box-shadow:none;}
+
+footer{text-align:center; font-size:11.5px; color:var(--gray); padding:30px 24px 10px;}
+
+@media print{
+  .btn-row, .offline-badge{display:none;}
+  .result{position:static; box-shadow:none;}
+  body{padding-bottom:0;}
+}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap" style="padding:0;">
+    <h1>选题验证看板 · 离线版</h1>
+    <p>选题过三关 — Clear the Three Gates（本地手动判断清单，全程不联网）</p>
+    <span class="offline-badge">● 纯本地运行 · 不发送任何数据 · 断网可用</span>
+  </div>
+</header>
+<div class="stripe"><div class="m"></div><div class="s"></div><div class="r"></div></div>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>关于这个工具 / About</h2>
+    <p style="font-size:13px; color:var(--ink-soft); margin:0;">
+      这是 <b>topic-planner</b> 技能「选题过三关」框架的静态离线版本，把判断框架做成了可手动填写的清单——
+      没有 AI 自动判断，也不会帮你联网查数据，需要你自己先做检索、再把结论填进来。
+      综合判断和卡点定位会根据你填的「成立/存疑/不成立」自动按框架的判断阈值算出来。
+      所有内容只存在你这台电脑的浏览器里（localStorage），刷新不丢，换设备不同步，也不会上传到任何地方。
+      <br><br>
+      如果你想要真正联网检索市场数据、由 AI 自动帮你判断，需要在 Claude Code / Cowork 里用完整版的 topic-planner 技能。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>基本信息 / Basics</h2>
+    <label for="topicName">选题名称</label>
+    <input type="text" id="topicName" placeholder="例如：用 AI 工具做一档聊本地小吃历史的播客">
+    <label for="medium">媒介</label>
+    <select id="medium">
+      <option value="图书出版">图书出版</option>
+      <option value="公众号图文">公众号图文</option>
+      <option value="短视频">短视频（抖音 / 视频号 / B 站）</option>
+      <option value="小红书笔记">小红书笔记</option>
+      <option value="播客音频">播客音频</option>
+      <option value="其他">其他（类推最接近的一类）</option>
+    </select>
+  </div>
+
+  <!-- Gate 1 -->
+  <div class="card gate g1">
+    <div class="gate-head">
+      <div class="gate-num">01</div>
+      <div class="gate-titles">
+        <div class="tag">GATE 1 · 硬门槛</div>
+        <h3>需求关 · 有没有人真的要</h3>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-title"><span class="n">1.</span> 话题势能</div>
+      <div class="item-desc">有没有天然传播土壤？这个话题是不是已经在反复被讨论/创作？</div>
+      <div class="radio-row" data-item="1"></div>
+      <textarea data-note="1" placeholder="依据 + 数据来源（检索到的平台/关键词/链接）"></textarea>
+    </div>
+    <div class="item">
+      <div class="item-title"><span class="n">2.</span> 刚需强度</div>
+      <div class="item-desc">受众的痛点是不是真实存在，而不是自己觉得重要？</div>
+      <div class="radio-row" data-item="2"></div>
+      <textarea data-note="2" placeholder="依据 + 数据来源"></textarea>
+    </div>
+    <div class="item">
+      <div class="item-title"><span class="n">3.</span> 即时驱动力（按媒介调整：购买 / 打开转发 / 点赞收藏 / 听完订阅）</div>
+      <div class="item-desc">为什么受众现在就要做出那个决定性动作，不能等？（短视频类可改称"互动/传播理由"）</div>
+      <div class="radio-row" data-item="3"></div>
+      <textarea data-note="3" placeholder="依据 + 数据来源"></textarea>
+    </div>
+  </div>
+
+  <!-- Gate 2 -->
+  <div class="card gate g2">
+    <div class="gate-head">
+      <div class="gate-num">02</div>
+      <div class="gate-titles">
+        <div class="tag">GATE 2 · 硬门槛</div>
+        <h3>竞争关 · 能不能赢过同类内容</h3>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-title"><span class="n">4.</span> 竞争位势</div>
+      <div class="item-desc">凭什么不被同类内容/竞品吃掉？差异化角度是什么？</div>
+      <div class="radio-row" data-item="4"></div>
+      <textarea data-note="4" placeholder="依据 + 数据来源"></textarea>
+    </div>
+    <div class="item">
+      <div class="item-title"><span class="n">5.</span> 载体适配度</div>
+      <div class="item-desc">为什么这个内容最适合做成你选的这个媒介，而不是其他形式？</div>
+      <div class="radio-row" data-item="5"></div>
+      <textarea data-note="5" placeholder="依据 + 数据来源"></textarea>
+    </div>
+  </div>
+
+  <!-- Gate 3 -->
+  <div class="card gate g3">
+    <div class="gate-head">
+      <div class="gate-num">03</div>
+      <div class="gate-titles">
+        <div class="tag">GATE 3 · 加速器，不是及格线</div>
+        <h3>回报关 · 值不值得加码投入</h3>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-title"><span class="n">6.</span> 触达潜力</div>
+      <div class="item-desc">作者/团队能否触达目标受众（自有渠道、粉丝、人脉）？</div>
+      <div class="radio-row g3" data-item="6"></div>
+      <textarea data-note="6" placeholder="依据"></textarea>
+    </div>
+    <div class="item">
+      <div class="item-title"><span class="n">7.</span> 复利潜力</div>
+      <div class="item-desc">能否成为长期资产（长销书/账号人设/搜索长尾流量等），而不是一次性内容？</div>
+      <div class="radio-row g3" data-item="7"></div>
+      <textarea data-note="7" placeholder="依据"></textarea>
+    </div>
+  </div>
+
+  <div class="result">
+    <h2>综合判断（自动计算）</h2>
+    <div id="verdictBadge" class="verdict-badge verdict-待填写">待填写</div>
+    <div id="stuckList" class="stuck-list">先在上面填完需求关和竞争关的 5 项，这里会自动算出卡点和综合判断。</div>
+    <div class="btn-row">
+      <button class="primary" onclick="window.print()">打印 / 导出 PDF</button>
+      <button onclick="copySummary()">复制文字总结</button>
+      <button onclick="clearAll()">清空重填</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  topic-planner · 选题过三关 离线判断清单　|　单文件 HTML，零外部依赖，可离线使用　|　数据仅保存在本机浏览器
+</footer>
+
+<script>
+// ===========================================
+// 零依赖：不请求任何网络资源。所有状态存在 localStorage。
+// ===========================================
+const STORAGE_KEY = 'topic-planner-offline-v1';
+
+const HARD_GATE_OPTIONS = ['成立', '存疑', '不成立'];
+const SOFT_GATE_OPTIONS = ['强', '中', '弱'];
+
+// 生成 1-5 号（硬门槛，成立/存疑/不成立）和 6-7 号（加速器，强/中/弱）的单选组
+document.querySelectorAll('.radio-row').forEach(row => {
+  const itemNum = row.dataset.item;
+  const isSoft = row.classList.contains('g3');
+  const options = isSoft ? SOFT_GATE_OPTIONS : HARD_GATE_OPTIONS;
+  options.forEach(opt => {
+    const id = `item${itemNum}_${opt}`;
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="radio" name="item${itemNum}" value="${opt}" id="${id}"> ${opt}`;
+    label.addEventListener('click', () => {
+      row.querySelectorAll('label').forEach(l => l.className = '');
+      label.className = `checked-${opt}`;
+      saveState();
+      computeVerdict();
+    });
+    row.appendChild(label);
+  });
+});
+
+function getState(){
+  const state = {
+    topicName: document.getElementById('topicName').value,
+    medium: document.getElementById('medium').value,
+    items: {},
+    notes: {},
+  };
+  for(let i=1;i<=7;i++){
+    const checked = document.querySelector(`input[name="item${i}"]:checked`);
+    state.items[i] = checked ? checked.value : null;
+    const note = document.querySelector(`textarea[data-note="${i}"]`);
+    state.notes[i] = note ? note.value : '';
+  }
+  return state;
+}
+
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(getState())); }catch(e){}
+}
+
+function loadState(){
+  let raw;
+  try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){ return; }
+  if(!raw) return;
+  let state;
+  try{ state = JSON.parse(raw); }catch(e){ return; }
+  document.getElementById('topicName').value = state.topicName || '';
+  document.getElementById('medium').value = state.medium || '图书出版';
+  for(let i=1;i<=7;i++){
+    const val = state.items && state.items[i];
+    if(val){
+      const input = document.getElementById(`item${i}_${val}`);
+      if(input){
+        input.checked = true;
+        input.closest('label').className = `checked-${val}`;
+      }
+    }
+    const noteVal = state.notes && state.notes[i];
+    const note = document.querySelector(`textarea[data-note="${i}"]`);
+    if(note && noteVal) note.value = noteVal;
+  }
+}
+
+const ITEM_NAMES = {
+  1:'话题势能', 2:'刚需强度', 3:'即时驱动力', 4:'竞争位势', 5:'载体适配度',
+  6:'触达潜力', 7:'复利潜力',
+};
+
+function computeVerdict(){
+  const state = getState();
+  const hard = [1,2,3,4,5].map(i => state.items[i]);
+  const filled = hard.filter(v => v !== null).length;
+  const badge = document.getElementById('verdictBadge');
+  const stuckEl = document.getElementById('stuckList');
+
+  if(filled < 5){
+    badge.textContent = '待填写';
+    badge.className = 'verdict-badge verdict-待填写';
+    stuckEl.innerHTML = `已填 ${filled} / 5 项（需求关 + 竞争关），填完硬门槛的 5 项后自动计算。`;
+    return;
+  }
+
+  const failCount = hard.filter(v => v === '不成立').length;
+  const item2Fail = state.items[2] === '不成立';
+  const item3Fail = state.items[3] === '不成立';
+  const doubtCount = hard.filter(v => v === '存疑').length;
+
+  let verdict, cls;
+  if(failCount >= 2 || item2Fail || item3Fail){
+    verdict = '暂不推进'; cls = 'verdict-暂不推进';
+  } else if(failCount >= 1){
+    verdict = '补充材料后推进'; cls = 'verdict-补充材料后推进';
+  } else {
+    verdict = '推进'; cls = 'verdict-推进';
+  }
+
+  badge.textContent = verdict;
+  badge.className = `verdict-badge ${cls}`;
+
+  const stuckItems = [1,2,3,4,5].filter(i => state.items[i] === '不成立' || state.items[i] === '存疑');
+  let html = '';
+  if(stuckItems.length === 0){
+    html = '需求关、竞争关 5 项硬门槛全部成立。';
+  } else {
+    html = '卡点：' + stuckItems.map(i => {
+      const tag = state.items[i] === '不成立' ? '<b>不成立</b>' : '存疑';
+      return `第${i}项「${ITEM_NAMES[i]}」${tag}`;
+    }).join('，') + '。';
+  }
+  if(doubtCount > 0 && failCount === 0){
+    html += ' 有存疑项未被判"不成立"，不影响自动计算的结论，但建议先补充依据再最终确认。';
+  }
+  const soft6 = state.items[6], soft7 = state.items[7];
+  if(soft6 || soft7){
+    html += `<br>回报关（加速器，不影响上面的推进/暂不推进）：触达潜力 ${soft6||'未填'}，复利潜力 ${soft7||'未填'}。`;
+  }
+  stuckEl.innerHTML = html;
+}
+
+function copySummary(){
+  const state = getState();
+  let lines = [];
+  lines.push(`选题：${state.topicName || '(未填写)'}`);
+  lines.push(`媒介：${state.medium}`);
+  lines.push('');
+  lines.push('第一关·需求关');
+  [1,2,3].forEach(i => lines.push(`  ${i}. ${ITEM_NAMES[i]}：${state.items[i]||'未填'} — ${state.notes[i]||''}`));
+  lines.push('第二关·竞争关');
+  [4,5].forEach(i => lines.push(`  ${i}. ${ITEM_NAMES[i]}：${state.items[i]||'未填'} — ${state.notes[i]||''}`));
+  lines.push('第三关·回报关（加速器）');
+  [6,7].forEach(i => lines.push(`  ${i}. ${ITEM_NAMES[i]}：${state.items[i]||'未填'} — ${state.notes[i]||''}`));
+  lines.push('');
+  lines.push(`综合判断：${document.getElementById('verdictBadge').textContent}`);
+  const text = lines.join('\n');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>alert('已复制到剪贴板')).catch(()=>fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); alert('已复制到剪贴板'); }catch(e){ alert('复制失败，请手动选择文字复制'); }
+  document.body.removeChild(ta);
+}
+
+function clearAll(){
+  if(!confirm('确定要清空所有已填内容吗？')) return;
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  location.reload();
+}
+
+document.getElementById('topicName').addEventListener('input', saveState);
+document.getElementById('medium').addEventListener('change', saveState);
+document.querySelectorAll('textarea').forEach(t => t.addEventListener('input', saveState));
+
+loadState();
+computeVerdict();
+</script>
+
+</body>
+</html>
