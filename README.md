@@ -75,6 +75,15 @@ Drop the whole folder into your project's `.claude/skills/` directory (or symlin
 **Cowork**：打包成 `.skill` 文件后通过「Save skill」按钮安装。
 Package it into a `.skill` file and install via the "Save skill" button.
 
+**其他 Agent 平台（豆包 / Kimi / 通义千问 / 文心一言等，没有原生 Skill 机制的平台）**：
+这些平台不认 `.skill` 格式，但本技能天生就是纯文本（Markdown + YAML），可以直接当"自定义指令/知识库"用：
+1. 把 `agents/openai.yaml` 里 `system:` 字段下的全部内容（英文版，逻辑与 SKILL.md 完全一致）粘贴进平台的"人设/自定义指令/System Prompt"设置里；中文场景也可以直接用 `SKILL.md` 正文（去掉最上面的 YAML frontmatter 三行）作为指令文本。
+2. 把 `references/media-criteria/` 下对应媒介的文件、`references/gotchas.md`、`assets/topic-report-template.md` 作为"知识库文件"上传（如果平台支持文件上传/长期记忆），或需要时手动粘贴对应内容。
+3. 这些平台一般没有自动联网检索工具，判断前提醒 AI（或自己动手）先去当当/京东/抖音/小红书等对应平台查数据，检索不到的项目必须标注"存疑/未核实"，不能编造——这条规则在 `references/gotchas.md` 陷阱 14/15 里有详细说明。
+4. `离线工具/选题过三关-离线清单.html` 和使用哪个 AI 平台无关，双击直接在浏览器打开，可以当团队通用的人工核对清单来用。
+
+For platforms without a native skill mechanism (Doubao, Kimi, Qwen, ERNIE Bot, etc.): the skill is plain Markdown/YAML, so paste the `system:` block from `agents/openai.yaml` (or `SKILL.md`'s body, minus the frontmatter) into the platform's custom-instructions/system-prompt field, upload the `references/` files as a knowledge base if supported, and remember most of these platforms lack built-in web search — manually gather medium-specific market data first, or explicitly mark ungathered items "unverified" per `gotchas.md` #14/#15. The offline HTML checklist in `离线工具/` works identically regardless of which AI platform your team uses.
+
 ---
 
 ## 局限与免责声明 / Limitations & disclaimer
