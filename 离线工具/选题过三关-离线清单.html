@@ -84,10 +84,11 @@ header.mast p{
   animation:reveal .6s var(--ease) forwards;
 }
 .card:nth-of-type(1){animation-delay:.05s;}
-.card:nth-of-type(2){animation-delay:.12s;}
-.card:nth-of-type(3){animation-delay:.19s;}
-.card:nth-of-type(4){animation-delay:.26s;}
-.card:nth-of-type(5){animation-delay:.33s;}
+.card:nth-of-type(2){animation-delay:.11s;}
+.card:nth-of-type(3){animation-delay:.17s;}
+.card:nth-of-type(4){animation-delay:.23s;}
+.card:nth-of-type(5){animation-delay:.29s;}
+.card:nth-of-type(6){animation-delay:.35s;}
 @keyframes reveal{ to{ opacity:1; transform:translateY(0); } }
 @media (prefers-reduced-motion: reduce){
   .card{animation:none; opacity:1; transform:none;}
@@ -196,12 +197,12 @@ footer{text-align:center; font-size:11.5px; color:var(--gray); padding:30px 24px
   <div class="card">
     <h2>关于这个工具 / About</h2>
     <p style="font-size:13px; color:var(--ink-soft); margin:0;">
-      这是 <b>topic-planner</b> 技能「选题过三关」框架的静态离线版本，把判断框架做成了可手动填写的清单——
-      没有 AI 自动判断，也不会帮你联网查数据，需要你自己先做检索、再把结论填进来。
-      综合判断和卡点定位会根据你填的「成立/存疑/不成立」自动按框架的判断阈值算出来。
+      这是 <b>topic-planner</b> 技能「选题过三关」框架的静态离线版本，把判断框架做成了一份零依赖的清单——
+      本页本身不联网、不发请求，但每一项的数据和来源不该靠人工苦查苦填：往下填好选题和媒介后，
+      用"① 生成检索提示词"把任务交给你手边任意一个<b>有联网能力的 AI 智能体</b>（豆包、Kimi、通义千问、ChatGPT、Claude 等都可以），
+      再把它返回的结果粘贴回来自动导入——检索由 AI 完成，这份清单只负责把结论结构化、按阈值算出综合判断，并让你核对。
+      没有 AI 智能体在手也可以直接手动填写 7 项判断。
       所有内容只存在你这台电脑的浏览器里（localStorage），刷新不丢，换设备不同步，也不会上传到任何地方。
-      <br><br>
-      如果你想要真正联网检索市场数据、由 AI 自动帮你判断，需要在 Claude Code / Cowork 里用完整版的 topic-planner 技能。
     </p>
   </div>
 
@@ -218,6 +219,24 @@ footer{text-align:center; font-size:11.5px; color:var(--gray); padding:30px 24px
       <option value="播客音频">播客音频</option>
       <option value="其他">其他（类推最接近的一类）</option>
     </select>
+  </div>
+
+  <div class="card">
+    <h2>AI 自动检索（推荐）/ AI-Assisted Research</h2>
+    <h3>让 AI 智能体联网查，你负责核对</h3>
+    <p style="font-size:13px; color:var(--ink-soft); margin:0 0 14px;">
+      先填好上面的选题名称和媒介。第①步复制检索提示词，发给任意一个开着联网/搜索功能的 AI 智能体；
+      第②步把它返回的 JSON 粘贴进下面的框，点"导入"会自动勾选 7 项判断、填好依据、算出综合结论——
+      你只需要核对每一项依据是否站得住，不用自己重新打字。
+    </p>
+    <div class="btn-row" style="margin-top:0; margin-bottom:16px;">
+      <button class="primary" onclick="copyPrompt()">① 生成检索提示词并复制</button>
+    </div>
+    <label for="aiImport">② 粘贴 AI 返回的 JSON 结果</label>
+    <textarea id="aiImport" style="min-height:90px;" placeholder='把 AI 智能体返回的 JSON 粘贴在这里，然后点"导入并自动计算"'></textarea>
+    <div class="btn-row" style="margin-top:0;">
+      <button class="primary" onclick="importFromAI()">导入并自动计算</button>
+    </div>
   </div>
 
   <!-- Gate 1 -->
@@ -440,6 +459,115 @@ function computeVerdict(){
     html += `<br>回报关（加速器，不影响上面的推进/暂不推进）：触达潜力 ${soft6||'未填'}，复利潜力 ${soft7||'未填'}。`;
   }
   stuckEl.innerHTML = html;
+}
+
+// ===========================================
+// AI 辅助检索：本页不联网，检索这一步交给用户自己的 AI 智能体（豆包/Kimi/千问/
+// ChatGPT/Claude 等，只要开了联网/搜索功能都行）。这里只负责：①按当前选题/媒介
+// 拼一份结构化提示词给用户复制走；②把 AI 返回的 JSON 解析回填到页面。
+// ===========================================
+function buildPromptItems(){
+  const items = [];
+  document.querySelectorAll('.item').forEach(el => {
+    const row = el.querySelector('.radio-row');
+    const num = row.dataset.item;
+    const title = el.querySelector('.item-title').textContent.trim();
+    const desc = el.querySelector('.item-desc').textContent.trim();
+    const isSoft = row.classList.contains('g3');
+    items.push({num, title, desc, isSoft});
+  });
+  return items;
+}
+
+function copyPrompt(){
+  const topicName = document.getElementById('topicName').value.trim() || '（请替换成你的具体选题）';
+  const medium = document.getElementById('medium').value;
+  const items = buildPromptItems();
+  const lines = [];
+  lines.push('你是一个内容选题判断助手。请先联网检索下面这个选题在对应媒介的真实市场数据（销量/热度/同类内容/竞品等，因媒介而定），再严格按"选题过三关"框架逐项给出判断。');
+  lines.push('查不到公开数据的项目，verdict 填"存疑"或"不成立"，note 里写明"未检索到公开数据"，禁止编造具体数字、评分或链接。');
+  lines.push('');
+  lines.push(`选题：${topicName}`);
+  lines.push(`媒介：${medium}`);
+  lines.push('');
+  lines.push('逐项判断（verdict 必须严格从给定选项里选一个）：');
+  items.forEach(it => {
+    const opts = it.isSoft ? '强 / 中 / 弱' : '成立 / 存疑 / 不成立';
+    lines.push(`${it.num}. ${it.title}——${it.desc}（verdict 可选值：${opts}）`);
+  });
+  lines.push('');
+  lines.push('最后只输出一段 JSON，不要输出任何其他文字，也不要用 ``` 代码块包裹，严格按这个结构（key 用字符串数字 "1"~"7"）：');
+  lines.push('{"topicName":"","medium":"","items":{"1":{"verdict":"","note":""},"2":{"verdict":"","note":""},"3":{"verdict":"","note":""},"4":{"verdict":"","note":""},"5":{"verdict":"","note":""},"6":{"verdict":"","note":""},"7":{"verdict":"","note":""}}}');
+  lines.push('note 字段里要写清楚依据 + 具体数据来源（平台名 + 关键词/链接），方便别人复核。');
+
+  const text = lines.join('\n');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text)
+      .then(()=>alert('检索提示词已复制。粘贴给你的 AI 智能体前，记得先开启它的联网/搜索功能。'))
+      .catch(()=>fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function importFromAI(){
+  let raw = document.getElementById('aiImport').value.trim();
+  if(!raw){ alert('先把 AI 智能体返回的 JSON 粘贴进上面的文本框。'); return; }
+  // 容错：有些 AI 会习惯性套一层 ```json ... ``` 代码块，这里剥掉
+  raw = raw.replace(/^```json/i, '').replace(/^```/, '').replace(/```\s*$/, '').trim();
+
+  let data;
+  try{
+    data = JSON.parse(raw);
+  }catch(e){
+    alert('JSON 解析失败，请检查粘贴的内容是否完整、是否是合法 JSON。\n\n错误信息：' + e.message);
+    return;
+  }
+  if(!data.items){
+    alert('没有在 JSON 里找到 items 字段，请确认粘贴的是完整结果。');
+    return;
+  }
+
+  if(data.topicName) document.getElementById('topicName').value = data.topicName;
+  if(data.medium){
+    const sel = document.getElementById('medium');
+    const match = Array.from(sel.options).find(o => o.value === data.medium || o.textContent.includes(data.medium));
+    if(match) sel.value = match.value;
+  }
+
+  const validHard = new Set(HARD_GATE_OPTIONS);
+  const validSoft = new Set(SOFT_GATE_OPTIONS);
+  let filledCount = 0;
+  const skipped = [];
+
+  for(let i=1;i<=7;i++){
+    const entry = data.items[i] || data.items[String(i)];
+    if(!entry){ skipped.push(i); continue; }
+    const val = entry.verdict;
+    const isSoft = i >= 6;
+    const valid = isSoft ? validSoft.has(val) : validHard.has(val);
+    if(!valid){ skipped.push(i); continue; }
+
+    document.querySelectorAll(`input[name="item${i}"]`).forEach(inp => {
+      inp.checked = false;
+      inp.closest('label').className = '';
+    });
+    const input = document.getElementById(`item${i}_${val}`);
+    if(input){
+      input.checked = true;
+      input.closest('label').className = `checked-${val}`;
+      filledCount++;
+    }
+    const note = document.querySelector(`textarea[data-note="${i}"]`);
+    if(note) note.value = entry.note || '';
+  }
+
+  saveState();
+  computeVerdict();
+
+  let msg = `已导入 ${filledCount} / 7 项判断，请核对每一项的依据是否站得住，再决定要不要采纳这个结论。`;
+  if(skipped.length) msg += `\n第 ${skipped.join('、')} 项没能识别（缺失或 verdict 值不合法），需要手动补填。`;
+  alert(msg);
 }
 
 function copySummary(){
