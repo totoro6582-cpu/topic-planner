@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 .vscode/
 .idea/
+
+# 打包产物：由 dist 脚本从 git 树重新生成，不进版本库
+*.skill
+topic-planner-skill-package*.zip
